@@ -1,0 +1,21 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="WeFiles, a private place for your files.">
+    <title>{% block title %}WeFiles{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'css/app.css' %}">
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="site-header">
+      <a class="brand" href="{% url 'core:home' %}" aria-label="WeFiles home">
+        <span class="brand-mark" aria-hidden="true">W</span>WeFiles
+      </a>
+    </header>
+    <main id="main" tabindex="-1">{% block content %}{% endblock %}</main>
+    <footer class="site-footer">WeFiles · Your files, together.</footer>
+  </body>
+</html>
