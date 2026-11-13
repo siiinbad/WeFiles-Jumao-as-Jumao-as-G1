@@ -87,14 +87,24 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 STATICFILES_DIRS = [BASE_DIR / "static"]
-# Durable uploads are introduced in the next deployment session.
-# There is intentionally no default upload backend in this scaffold.
 STORAGES = {
+    # Validate these only when storage is used, so missing upload credentials
+    # cannot prevent static collection or database management commands.
+    "default": {
+        "BACKEND": "core.storage.PrivateSupabaseStorage",
+        "OPTIONS": {
+            "endpoint_url": os.getenv("SUPABASE_S3_ENDPOINT_URL", "").strip(),
+            "region_name": os.getenv("SUPABASE_S3_REGION", "").strip(),
+            "bucket_name": os.getenv("SUPABASE_STORAGE_BUCKET", "").strip(),
+            "access_key": os.getenv("SUPABASE_S3_ACCESS_KEY_ID", "").strip(),
+            "secret_key": os.getenv("SUPABASE_S3_SECRET_ACCESS_KEY", "").strip(),
+        },
+    },
     "staticfiles": {
         "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"
         if DEBUG
         else "whitenoise.storage.CompressedManifestStaticFilesStorage"
-    }
+    },
 }
 
 SESSION_COOKIE_HTTPONLY = True
@@ -102,6 +112,9 @@ SESSION_COOKIE_SAMESITE = "Lax"
 SESSION_COOKIE_SECURE = not DEBUG
 CSRF_COOKIE_SECURE = not DEBUG
 SECURE_SSL_REDIRECT = not DEBUG
+# Render must receive actual DB readiness, even on an internal HTTP probe.
+# The endpoint exposes only a status and performs no authentication or writes.
+SECURE_REDIRECT_EXEMPT = [r"^health/ready/$"]
 SECURE_CONTENT_TYPE_NOSNIFF = True
 SECURE_HSTS_SECONDS = 31536000 if not DEBUG else 0
 SECURE_HSTS_INCLUDE_SUBDOMAINS = not DEBUG

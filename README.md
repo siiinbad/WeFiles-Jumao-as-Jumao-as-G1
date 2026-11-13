@@ -4,9 +4,10 @@ A new Django project, built one feature at a time. The original application is
 kept in the separate sibling `WeFiles/` directory. This project has its own Git
 history, environment and database; no old application code or data was copied.
 
-Current session: **Day 1-A — Django and Supabase foundation**. The public landing
-page and Django admin are wired. Member sign-in, vault uploads and other file
-features will be added in later sessions.
+Current session: **Day 1-B — Render and private Storage foundation**. Deployment
+files, database readiness and the private Storage adapter are implemented.
+Live deployment still needs your provider configuration. Member sign-in and
+file-upload screens begin in Day 2; they are not included in this session.
 
 ## Local setup
 
@@ -63,6 +64,11 @@ migrations over the old project's database.
 | TRUST_PROXY_HTTPS | True only behind a trusted proxy such as Render. |
 | TEST_DATABASE_URL | Separate disposable Supabase project; required by database-backed test settings. |
 | TIME_ZONE | Asia/Manila by default. |
+| SUPABASE_S3_ENDPOINT_URL | Exact HTTPS endpoint from Supabase Storage S3 settings, including /storage/v1/s3. |
+| SUPABASE_S3_REGION | Region copied from the same S3 settings. |
+| SUPABASE_STORAGE_BUCKET | Private bucket name, e.g. wefiles-private. |
+| SUPABASE_S3_ACCESS_KEY_ID | Generated server-side S3 access key; not the anon/publishable key. |
+| SUPABASE_S3_SECRET_ACCESS_KEY | Matching server-side S3 secret; never expose it in HTML or Git. |
 
 Never commit `.env`, private environment variants, credentials, virtual
 environments, generated static output, uploads or caches. If a real secret was
@@ -94,18 +100,91 @@ These settings reject a test URL identifying the normal app's Supabase project,
 even across direct/session/transaction endpoints. Test runs must be serialized.
 The dedicated test database may be flushed; never point it at real app data.
 
-## Render — next session
+## Private Supabase Storage
 
-The next session adds build.sh and render.yaml, a readiness endpoint and private
-Supabase Storage configuration. The planned Render service uses this Git root
-(Root Directory blank), `bash build.sh`, and
-`gunicorn config.wsgi:application --bind 0.0.0.0:$PORT`.
-Set environment secrets in Render, DEBUG=False and TRUST_PROXY_HTTPS=True.
-Build installs pinned requirements, collects static assets and migrates the
-external Supabase database. No Render PostgreSQL service or durable local media.
+1. In your NEW Supabase project, create a bucket such as `wefiles-private` and
+   leave **Public bucket disabled**. Configure the size limit appropriate to
+   your workspace. Do not create a public-read policy for this bucket.
+2. Open Storage's S3 settings. Generate an Access Key ID/Secret Access Key pair;
+   copy its endpoint and region. These are S3 credentials, not database,
+   publishable/anon or service-role keys.
+3. Add the five SUPABASE_* variables from .env.example to your private .env.
+   Keep the endpoint exactly as supplied; it commonly looks like
+   `https://PROJECT_REF.storage.supabase.co/storage/v1/s3`.
+4. Run the explicit server-side check:
 
-There is no upload backend or file model yet; durable uploads will use a private
-Supabase bucket configured before their feature is introduced.
+```bash
+python manage.py check_storage
+```
+
+It writes, reads and deletes one random `_checks/` object. Failures stop the
+command; a failed cleanup reports the disposable key to remove manually. The
+check verifies server-side access, not bucket visibility. Separately confirm
+the bucket remains private and an unauthenticated public object URL cannot
+read an object. Never make a private bucket public to fix an authorization error.
+
+S3 keys bypass RLS and remain server-only. The backend refuses `.url()` calls;
+future downloads will go through owner-checked Django views. It uses no local
+upload fallback and sends no unsupported ACL header. See
+[Supabase S3 authentication](https://supabase.com/docs/guides/storage/s3/authentication)
+and [S3 compatibility](https://supabase.com/docs/guides/storage/s3/compatibility).
+
+Storage settings are validated lazily when storage is used. This lets database
+management and static collection work before upload credentials are configured.
+There is still no user-facing upload or download feature in this session.
+
+## Deploy on Render
+
+The committed .python-version pins Python 3.14.10, matching local verification.
+Connect this fresh repository to Render; do not select the old application.
+Use **New → Blueprint** and its render.yaml, or create a Python web service:
+
+| Dashboard field | Value |
+| --- | --- |
+| Branch | main |
+| Root Directory | Blank: manage.py is at the repository root. |
+| Build Command | `bash build.sh` |
+| Start Command | The complete startCommand in render.yaml (Gunicorn binds 0.0.0.0:$PORT). |
+| Health Check Path | /health/ready/ |
+| Environment | DEBUG=False, TRUST_PROXY_HTTPS=True, DATABASE_URL and the five private Storage variables. |
+| SECRET_KEY | Independent stable random production key, at least 50 characters. |
+| Database/disk | External Supabase only; no Render PostgreSQL or persistent media disk. |
+
+Generate the production secret privately, for example in your own terminal:
+
+```bash
+python -c 'import secrets; print(secrets.token_urlsafe(64))'
+```
+
+Paste it into Render's SECRET_KEY field and keep it stable across deployments.
+Do not put the output in a source file or chat. Blueprint `sync: false` fields
+prompt during initial creation; add new values manually in Environment when
+updating an already-created service. ALLOWED_HOSTS and the HTTPS CSRF origin
+automatically include RENDER_EXTERNAL_HOSTNAME; custom domains need their own
+explicit host/origin values. No SITE_URL or email provider is needed yet.
+
+build.sh installs requirements, runs production checks, collects static assets,
+and applies existing migrations. It exits immediately if any step fails. A
+working Supabase pooler URL is necessary to complete the build. No additional
+model migration was introduced in Day 1-B. Do not use fake credentials to make
+a live deploy appear successful.
+
+Gunicorn's access-log format records method/status/duration without request
+paths or query strings. WhiteNoise serves versioned static files. Readiness
+returns only ready/200 or unavailable/503 after SELECT 1, with no-store caching;
+it never writes data or contacts object Storage. Internal health probes are
+exempt from Django's SSL redirect so a redirect cannot hide database failure.
+Normal application HTTP requests still redirect to HTTPS in production.
+
+After deploying, confirm the landing page, /admin/login/ and its hashed CSS load;
+/health/ready/ returns 200; and `check_storage` passes from a configured server
+shell or your local environment with the same Supabase bucket. Create the admin
+through `python manage.py createsuperuser` after migrations, using a configured
+local environment if your Render plan does not provide a shell. Never create
+fixed admin credentials in build.sh. Provider acceptance details are in
+[operations](docs/operations.md). This follows
+[Render's Django deployment workflow](https://render.com/docs/deploy-django)
+using Supabase in place of a Render-managed database.
 
 ## Progress: two real commits per day
 
@@ -120,21 +199,21 @@ Supabase bucket configured before their feature is introduced.
 - [x] Environment-only secrets and SSL Supabase database settings
 - [x] Minimal custom User and initial migration file
 - [ ] Apply migrations to the NEW Supabase project and verify admin access
-- [ ] Render build, health/static checks and private Storage configuration
+- [x] Render build/Blueprint, readiness endpoint and private Storage adapter
+- [ ] Live Render deploy and real Supabase Storage smoke/privacy checks
 - [ ] Member authentication
 - [ ] Private file CRUD
 - [ ] Final deployment tests and operational documentation
 
-Git is initialized on `main`; there are no commits or remotes yet. You will
-configure your own name/email. Create a NEW Public repository named
-`WeFiles-Lastname-Firstname-Section` before adding its origin. Do not reuse the
-old repository's remote. After the Day 1-A acceptance checks:
+Day 1-A is commit `127ae1e` on `main`. Day 1-B changes are provided for review;
+no automatic commit or push is made by this session. Repository naming follows
+`WeFiles-Lastname-Firstname-Section`. Review your staged files before committing:
 
 ```bash
-git add .env.example .gitignore README.md manage.py pyproject.toml requirements.txt requirements-dev.txt config accounts core scripts static templates docs
+git add .env.example .python-version build.sh render.yaml requirements.txt config/settings.py core/views.py core/urls.py core/storage.py core/management core/tests/test_deployment.py core/tests/test_storage.py README.md docs
 git diff --cached
-TZ=Asia/Manila git commit -m "chore: bootstrap Django with Supabase PostgreSQL"
-git push -u origin main
+TZ=Asia/Manila git commit -m "chore: deploy Django foundation on Render"
+git push origin main
 ```
 
 Commits record their actual creation time; work is not pre-committed for future

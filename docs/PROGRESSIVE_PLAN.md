@@ -2,9 +2,10 @@
 
 Updated November 13, 2026 (Asia/Manila). This replaces the upgrade roadmap.
 Start from an empty Django project; do not copy the completed app into the
-first commit. The Day 1-A foundation has been created in this independent repository.
-No commits or pushes have been made; Git identity is left for the user.
-Live Supabase migration acceptance remains pending private DATABASE_URL configuration.
+first commit. Day 1-A is foundation commit `127ae1e` on `main`. Day 1-B's
+deployment code is implemented and tested locally, ready for its own commit.
+Live Supabase migrations, Storage access and Render deployment acceptance remain
+pending private provider configuration. No later session has been implemented.
 See [verification evidence](verification.md).
 
 ## Commit calendar
@@ -44,11 +45,10 @@ initial migrations against the old database. The
 old audit and upgrade proposal in the sibling WeFiles/docs directory is historical
 reference only; its 67 tests and 98% coverage do not verify this fresh build.
 
-The new remote must be Public and named
-`WeFiles-Lastname-Firstname-Section`. Identity details are still missing. Set
-the new remote before the first push; do not overwrite the old remote with
-unrelated history. Local folder and remote names may differ. Never backdate
-commits or upload all features at once.
+The configured fresh remote is `siiinbad/WeFiles-Jumao-as-Jumao-as-G1`.
+Confirm that it is Public. The original app remains in its separate directory;
+only the new foundation belongs on this remote's main branch. Local folder and
+remote names may differ. Keep real commit timestamps and add one session at a time.
 
 ## Foundation and provider setup
 
@@ -196,7 +196,7 @@ their owning feature. All paths below are relative to the NEW Git root.
 | Session | Feature goal | Files to create/modify | Model/migration | Acceptance check | Commit message |
 | --- | --- | --- | --- | --- | --- |
 | Day 1-A · morning | Bootstrap an empty Django app using SSL Supabase PostgreSQL. | manage.py; config/{settings,test_settings,urls,wsgi,asgi}.py; accounts/{apps,models,admin}.py; accounts/migrations/0001_initial.py; core/{apps,views,urls,tests/}; templates/{base.html,core/home.html}; static/css/app.css; requirements.txt; scripts/configure_local.py; .env.example; .gitignore; README.md; package initializers | New minimal accounts.User; apply its committed initial migration and Django built-in migrations. | Fresh install/homepage/admin work; migrations apply to NEW Supabase; missing/SQLite URL fails; SSL/pool settings correct. | chore: bootstrap Django with Supabase PostgreSQL |
-| Day 1-B · evening | Deploy the foundation with private persistent-storage configuration. | build.sh; render.yaml; requirements.txt; config/settings.py; core/{storage,views,urls}.py; core/tests/test_deployment.py; .env.example; README.md | None. | Render build/static/migrations pass; HTTPS landing/readiness/hashed CSS return 200; private Storage save/open/delete smoke check succeeds without a public object URL. | chore: deploy Django foundation on Render |
+| Day 1-B · evening | Deploy the foundation with private persistent-storage configuration. | build.sh; render.yaml; .python-version; requirements.txt; config/settings.py; core/{storage,views,urls}.py; core/management/commands/check_storage.py and initializers; core/tests/{test_deployment,test_storage}.py; .env.example; README.md; docs/{operations,verification,PROGRESSIVE_PLAN}.md | None. | Local tests/security/static checks pass; then verify real Render build/migrations, HTTPS landing/readiness/CSS and private Storage save/read/delete using configured providers. | chore: deploy Django foundation on Render |
 | Day 2-A · morning | Let administrator-provisioned members sign in and out. | accounts/{urls,views,tests}.py; config/{settings,urls}.py; templates/accounts/login.html; templates/base.html | None. | Correct login succeeds; bad credentials fail generically; unsafe next redirect rejected; logout requires POST/CSRF. | feat: add member sign-in and sign-out |
 | Day 2-B · evening | Upload files into a member's private vault. | vault/{apps,models,forms,services,views,urls,tests}.py and initializers; vault/migrations/0001_initial.py; templates/vault/{list,upload}.html; templates/core/privacy.html; core/{views,urls}.py; config/{settings,urls}.py; templates/base.html | New File: UUID, owner FK, randomized private blob, display name, description, size and timestamps. | Valid upload appears in own-file receipt/list; invalid size/name/description rejected before storage save; other users cannot list it; failed DB save compensates the object. | feat: upload files to a private member vault |
 | Day 3-A · morning | Download owned files securely. | vault/{views,urls,tests}.py; templates/vault/list.html | None. | Owner gets original bytes as attachment; another member gets 404; anonymous visitor goes to login; provider failures produce safe feedback. | feat: download owned files securely |
@@ -226,7 +226,7 @@ git push -u origin main
 **Day 1-B**
 
 ```bash
-git add build.sh render.yaml requirements.txt config/settings.py core/storage.py core/views.py core/urls.py core/tests/test_deployment.py .env.example README.md
+git add .env.example .python-version build.sh render.yaml requirements.txt config/settings.py core/storage.py core/views.py core/urls.py core/management core/tests/test_deployment.py core/tests/test_storage.py README.md docs
 TZ=Asia/Manila git commit -m "chore: deploy Django foundation on Render"
 git push origin main
 ```
@@ -281,8 +281,9 @@ git push origin main
 
 ## Execution contract
 
-The Day 1-A foundation is prepared. Wait for `Next` before Day 1-B; implement
-only that session, with full file
+Day 1-B's deployment code is prepared; live provider checks remain pending.
+Wait for `Next` or `Day 2-A` before implementing member sign-in. Implement
+only the requested session, with full file
 contents for new files, clear diffs for later edits, its acceptance check and
 single commit command. Explain the code as a mentor without jumping to the
 finished application. Keep secrets external, commit genuine migrations, and
