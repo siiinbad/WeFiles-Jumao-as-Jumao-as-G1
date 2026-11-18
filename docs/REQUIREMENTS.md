@@ -26,7 +26,7 @@ email verification and membership approval are outside this selected increment.
 | User profile | Session-user view/edit; no privilege or identity fields | Preserved |
 | Render | Build/start/Blueprint/health, private storage settings, automatic deploys off | Prepared only |
 | Secrets/dependencies/setup | .gitignore, .env.example, requirements.txt, README | Updated |
-| Same public repository and required name | Existing WeFiles remote identified in reference checkout; increment has no remote | Pending reconciliation; no history overwritten |
+| Same public repository and required name | Public origin: siiinbad/WeFiles-Jumao-as-Jumao-as-G1 | Verify final student/section naming and PR evidence |
 | Required branches/merged PRs | main/develop baseline; separate vault, deployment, search, UI and documentation feature commits; workflow document | Local preparation; 2 feature -> develop and 1 develop -> main merged PRs pending |
 | Completion report PDF in docs | Original template retained; draft DOCX/PDF preserves all sections | Draft only; identity, screenshots, accounts, PRs and final filename pending |
 
@@ -46,3 +46,7 @@ workflow and final report evidence are recorded.
 
 The UI is now adapted from the original WeFiles shell, account screens and vault
 components. See UI_REFERENCE.md for provenance and local browser verification.
+
+Fresh-clone startup is provided by scripts/configure_local.py, compose.yaml and
+the platform-specific README commands on feature/local-setup. Verification from
+an isolated clone passed 8 setup tests and 56 Django tests; see VERIFICATION.md.

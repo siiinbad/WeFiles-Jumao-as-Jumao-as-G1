@@ -11,6 +11,5 @@ media/
 .coverage
 htmlcov/
 .pytest_cache/
-
 .tools/
 .test-artifacts/

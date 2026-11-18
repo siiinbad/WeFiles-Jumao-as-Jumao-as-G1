@@ -1,8 +1,9 @@
 # GitHub workflow - preparation only
 
 The account baseline and every existing branch are retained. main and develop
-remain at f57997f while the increment is in progress. No remote, push, pull
-request or release merge has been created by this local reorganization.
+were preserved by the local feature reorganization. The current public origin
+is https://github.com/siiinbad/WeFiles-Jumao-as-Jumao-as-G1.
+The local setup fix is prepared separately on feature/local-setup.
 
 ## Separate feature branches and commits
 
@@ -13,11 +14,12 @@ request or release merge has been created by this local reorganization.
 | File and folder search | feature/vault-search | 22e04f5 |
 | WeFiles UI and role dashboard summaries | feature/wefiles-ui | c5e2b6a |
 | PD2 implementation documentation and draft report | feature/pd2-documentation | See this branch's latest commit |
+| Fresh-clone local setup | feature/local-setup | c46e2e0 and its documentation follow-up |
 
 The new branches are created from develop and fast-forwarded to their required
 feature dependency before committing their own feature. The dependency order is:
 private-file-vault -> render-deployment -> vault-search -> wefiles-ui ->
-pd2-documentation. Each branch has its own feature commit; upstream commits are
+pd2-documentation -> local-setup. Each branch has its own feature commit; upstream commits are
 shared prerequisites. No dependency was merged into develop or main locally.
 
 feature/reference-ui is preserved at fc78926 as the original combined UI
@@ -48,3 +50,12 @@ for future PRs rather than submitting the old combined branch again.
 - Live Supabase database/private storage and hosted Render acceptance.
 - Final student/section details, labeled screenshots and working test accounts.
 - Signed final docs/WeFiles-Lastname-Firstname-Section-PD2.pdf and its commit.
+
+## Recorded GitHub history
+
+Existing merged PRs were verified during setup work: file search in PR #1,
+WeFiles UI in PR #2, and PD2 documentation in PR #3. Each currently targets main.
+A remote develop branch was not present when checked. Record this actual history
+in the draft; the requested feature -> develop -> main workflow still needs to
+be established for subsequent increments. The setup fix stays on its own
+feature/local-setup branch and does not merge or move main/develop.

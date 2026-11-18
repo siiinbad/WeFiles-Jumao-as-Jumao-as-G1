@@ -38,92 +38,161 @@ file tables, account cards and theme controls. See [UI reference](docs/UI_REFERE
 for the source assets and adapted screens. Workspace search and dashboard
 statistics respect the same owner/Admin access rules.
 
-## Run this prepared checkout (PowerShell)
+## Run from a fresh clone
 
-This checkout already has a virtual environment and local PostgreSQL under
-`.venv/` and `.tools/`. Use the commands below to run before Supabase is
-configured. These ignored local tools are not included in a fresh Git clone;
-for a new checkout, follow the setup section below.
+Install **Git**, **Python 3.12+** (Python 3.14 matches the series in
+`.python-version`), and **Docker with Compose v2.20+**. On Windows/macOS, install
+[Docker Desktop](https://docs.docker.com/desktop/) and start it before the database
+command. On Linux, use Docker Engine with its Compose plugin.
 
-Open PowerShell and run:
+Clone the setup feature branch while this increment is in progress:
+
+```bash
+git clone --branch feature/local-setup https://github.com/siiinbad/WeFiles-Jumao-as-Jumao-as-G1.git wefiles
+cd wefiles
+```
+
+Run the following commands from this repository's root, which contains
+`manage.py`. The application is at the root of the clone; there is no additional
+`wefiles-increment` directory to enter. If you already cloned it, fetch and switch
+to `feature/local-setup` before following the commands.
+
+### Windows PowerShell
 
 ```powershell
-cd C:\Users\L13X16W25\production\wefiles-increment
-
-# Start PostgreSQL; skip this command if it is already running.
-& .\.tools\postgres-bin\package\native\bin\pg_ctl.exe -D .\.tools\pgdata -l .\.tools\postgres.log -o "-h 127.0.0.1 -p 55439" -w start
-
-# Configure this terminal session.
-$env:SECRET_KEY = & .\.venv\Scripts\python.exe -c "import secrets; print(secrets.token_urlsafe(64))"
-$env:DJANGO_DEBUG = "True"
-$env:PRIVATE_STORAGE_BACKEND = "local"
-$env:DATABASE_URL = "postgresql://wefiles_test:local-disposable-only@127.0.0.1:55439/wefiles_acceptance"
-
-# Apply migrations and start Django.
+py -3 -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe scripts\configure_local.py
+docker compose up -d --wait db
 .\.venv\Scripts\python.exe manage.py migrate
 .\.venv\Scripts\python.exe manage.py runserver
 ```
 
-Open **http://127.0.0.1:8000/**, create an account, and sign in. Keep the terminal
-open while using the app. These environment settings apply only to that terminal
-session; repeat them when opening a new terminal. No virtual environment
-activation or `.env` copy is needed for this prepared-checkout flow.
+These commands use the virtual environment's Python directly; PowerShell script
+activation and execution-policy changes are unnecessary.
 
-Press **Ctrl+C** to stop Django. To stop PostgreSQL afterward:
+### macOS / Linux
 
-```powershell
-& .\.tools\postgres-bin\package\native\bin\pg_ctl.exe -D .\.tools\pgdata -w stop
+```bash
+python3 -m venv .venv
+.venv/bin/python -m pip install -r requirements.txt
+.venv/bin/python scripts/configure_local.py
+docker compose up -d --wait db
+.venv/bin/python manage.py migrate
+.venv/bin/python manage.py runserver
 ```
 
-The database login above is for this local development instance only. Supabase
-and Render remain unconfigured.
+Open **http://127.0.0.1:8000/**, create an account, and sign in. The setup helper
+creates an ignored `.env` with a random Django secret and PostgreSQL password,
+and a matching local database URL. It preserves existing values when run again.
+Compose creates the database and login, waits for PostgreSQL to become healthy,
+and stores its records in a named Docker volume. Upload bytes are stored in the
+ignored `media/` directory for local development.
 
-## Local setup for a fresh checkout
+A clone needs no bundled database, `.tools/`, pre-existing virtual environment,
+other WeFiles folder, or Supabase account. Dependencies, the environment template,
+setup helper, migrations, design assets and Compose definition are versioned.
 
-Use the Python version in `.python-version`. In PowerShell, inside this folder:
+### Stop and start again
 
-```powershell
-py -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install -r requirements.txt
-Copy-Item .env.example .env
-python -c "import secrets; print(secrets.token_urlsafe(64))"
+Press **Ctrl+C** to stop Django, then run:
+
+```bash
+docker compose stop db
 ```
 
-1. Put the generated value in `.env` as `SECRET_KEY`.
-2. Set `DJANGO_DEBUG=True`, `PRIVATE_STORAGE_BACKEND=local`, and explicit local
-   `ALLOWED_HOSTS`. `DJANGO_DEBUG` avoids collisions with the host's `DEBUG` variable.
-3. Set `DATABASE_URL` to a new Supabase project's session pooler connection
-   string, or a local PostgreSQL database. URL-encode special password characters.
-   Do not reuse `WeFiles`'s existing database; the user schema/migrations differ.
-4. Run `python manage.py migrate` and `python manage.py runserver`.
-5. Register and sign in at `/accounts/register/`. For an administrator, register
-   another account then run `python manage.py promote_workspace_admin USERNAME`.
+On the next run, start the database and Django again. In PowerShell:
 
-No production credentials or real accounts are bundled. `.env`, private uploads, test tools
-and virtual environments are ignored. Do not serve `media/` through public URLs.
+```powershell
+docker compose up -d --wait db
+.\.venv\Scripts\python.exe manage.py runserver
+```
+
+On macOS/Linux, replace the Python path with `.venv/bin/python`. Your `.env`,
+accounts, database records and uploads persist between restarts. After pulling
+changes with new migrations, run `manage.py migrate` before starting Django.
+
+To test the Admin role, register another account, stop Django, then use the same
+virtual environment's Python in the same repository:
+
+```powershell
+.\.venv\Scripts\python.exe manage.py promote_workspace_admin YOUR_USERNAME
+```
+
+Start Django again and sign in as that account. Admin is a workspace role;
+Django maintenance staff permissions are managed separately.
+
+### Use existing PostgreSQL or Supabase instead of Docker
+
+Install PostgreSQL and create a dedicated login/database, or create a new
+Supabase project. For a new native PostgreSQL instance, run these statements as
+its administrator in `psql` or pgAdmin:
+
+```sql
+CREATE ROLE wefiles WITH LOGIN PASSWORD 'choose-your-local-password' CREATEDB;
+CREATE DATABASE wefiles OWNER wefiles;
+```
+
+After installing the Python requirements, choose that connection during initial
+configuration (PowerShell example):
+
+```powershell
+.\.venv\Scripts\python.exe scripts\configure_local.py --database-url "postgresql://wefiles:choose-your-local-password@127.0.0.1:5432/wefiles"
+.\.venv\Scripts\python.exe manage.py migrate
+.\.venv\Scripts\python.exe manage.py runserver
+```
+
+For Supabase, use the PostgreSQL **Session pooler** connection string from its
+Connect panel. URL-encode special password characters. There is no SQLite
+fallback. If `.env` already selects another database, edit `DATABASE_URL` there
+explicitly; the setup helper does not replace an existing selection. Do not
+reuse the original WeFiles database because its user schema/migrations differ.
+
+### Setup troubleshooting
+
+- **Docker is unavailable or cannot connect:** install/start Docker, verify
+  `docker compose version`, and retry; or use the native PostgreSQL option.
+- **Port 55432 is occupied:** choose another unused `POSTGRES_PORT` in `.env` and
+  update the port in `DATABASE_URL` to match before starting the database.
+- **Existing database rejects a changed password:** initialization credentials
+  apply when a Docker volume is first created. Keep the original `.env` password
+  for that volume, or change the PostgreSQL role password explicitly.
+- **Old terminal settings override `.env`:** environment variables take priority.
+  Open a fresh terminal after changing configuration, and avoid reusing the old
+  temporary `wefiles_test`/port-55439 settings.
+- **Python is not found:** install Python first. Use `py -3` on Windows and
+  `python3` on macOS/Linux to create the virtual environment. Minimal Linux
+  installations may also require their distribution's `python3-venv` package.
+
+See [setup and deployment](docs/SETUP.md) for hosted Supabase storage and Render
+configuration. Local startup does not create or deploy cloud resources.
 
 ## Tests
 
-Database-independent checks need no `.env` or Supabase project:
+Run the setup helper regression checks and database-independent Django checks
+from the repository root (PowerShell):
 
 ```powershell
-python manage.py test accounts.tests.test_registration accounts.tests.test_sessions accounts.tests.test_roles accounts.tests.test_profiles vault.tests vault.tests_deployment --settings=config.test_settings
-python manage.py check --settings=config.test_settings
+.\.venv\Scripts\python.exe -m unittest discover -s scripts -p test_configure_local.py
+.\.venv\Scripts\python.exe manage.py test accounts.tests.test_registration accounts.tests.test_sessions accounts.tests.test_roles accounts.tests.test_profiles vault.tests vault.tests_deployment --settings=config.test_settings
+.\.venv\Scripts\python.exe manage.py check --settings=config.test_settings
 ```
 
+On macOS/Linux, use `.venv/bin/python` for the same commands.
+
 For the complete journey suite, set `TEST_DATABASE_URL` to a separate disposable
-PostgreSQL database. Local PostgreSQL tests create/drop a `test_` database, so
-its login needs `CREATEDB`. Never use production credentials for tests.
+PostgreSQL database/login you created. Local tests create/drop a `test_` database,
+so the test login needs `CREATEDB`. Substitute your test connection below:
 
 ```powershell
-$env:TEST_DATABASE_URL = 'postgresql://test_user:TEST_PASSWORD@127.0.0.1:5432/wefiles_test'
-python manage.py test --settings=config.test_settings --parallel 1
+$env:TEST_DATABASE_URL = 'postgresql://test_user:URL_ENCODED_TEST_PASSWORD@127.0.0.1:5432/wefiles_test'
+.\.venv\Scripts\python.exe manage.py test --settings=config.test_settings --parallel 1
 ```
 
 For a disposable Supabase test project, see [SETUP](docs/SETUP.md): its test
 runner reuses and flushes that project's tables and requires explicit opt-in.
-GitHub Actions is prepared with an isolated PostgreSQL service.
+GitHub Actions runs the suite with isolated PostgreSQL and separately exercises
+the generated `.env`, Compose startup and migrations from a clean checkout.
 
 ## Render preparation
 

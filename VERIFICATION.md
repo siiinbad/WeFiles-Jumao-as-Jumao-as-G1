@@ -44,9 +44,9 @@ Verified on 2026-11-18. Supabase and Render remain unconfigured.
   and Supabase storage acceptance remain pending.
 - Render startup/Gunicorn were not executed on a Linux Render host. No Blueprint
   or service was created, no deployment was triggered, and no hosted URL exists.
-- GitHub Actions is prepared but has not run remotely. No remote was configured
-  for this independent increment history, no push or PR was made, and no merge
-  into main/develop was performed. Local feature commits are preparation only.
+- The repository now has a public GitHub origin. This setup feature does not
+  perform a release merge or Render deployment. Both setup CI jobs passed on
+  commit 4592fc8: postgres-tests and fresh-clone-setup (run 44279360695).
 - The report remains an unsigned draft. Confirm student name/section, populate
   real demo accounts and screenshots, record actual merged PR links, and export
   the required final filename before submission.
@@ -66,3 +66,36 @@ branches are preserved. The final application files match the previously tested
 UI checkpoint byte-for-byte in Git; only branch/report documentation is updated.
 The search-only intermediate snapshot also passed Django system checks. No new
 runtime behavior or production migration is introduced by reorganizing commits.
+
+## Fresh-clone setup verification
+
+On feature/local-setup, cloned the committed source into an isolated directory.
+The clone initially contained no .env, .venv, .tools, .test-artifacts or sibling
+WeFiles project. Created a new virtual environment and installed requirements.txt
+from scratch. The setup helper generated matching random local credentials and
+preserved the complete .env when run again.
+
+- All 8 setup-helper regression tests passed.
+- The official checksum-verified Docker Compose CLI accepted compose.yaml with
+  the generated .env. Docker Engine is not installed on this host, so container
+  startup was verified by the passing fresh-clone-setup GitHub Actions job on
+  Ubuntu, including environment generation, Compose health, migrations and checks.
+- Provided native PostgreSQL 17 as an external prerequisite using exactly the
+  clone's generated database/login/password/port. Migrations, Django database
+  checks, static collection and pip dependency checks passed.
+- Started Django with the clone's own virtual environment. Real HTTP requests
+  passed registration/login, private folder/file creation, download byte checks,
+  metadata edits, profile changes, confirmed deletions and logout.
+- Restarted the app and verified that the login session, file record and uploaded
+  bytes persisted using the generated .env and database.
+- All 56 Django tests passed in that clone against a separate disposable database.
+- Generated environment, virtual environment, static files and uploads remained
+  ignored by Git; the clone's tracked working tree stayed clean. Stopped the
+  isolated app and database after verification.
+
+Live Supabase storage, hosted Render acceptance and the final report submission
+remain pending. This verification introduces no SQLite fallback.
+
+Published feature/local-setup and verified a public clone with credential helpers
+disabled. Passing CI for the verified setup code:
+https://github.com/siiinbad/WeFiles-Jumao-as-Jumao-as-G1/actions/runs/44279360695
